@@ -78,12 +78,16 @@ app.post('/api/create-checkout-session', async (req, res) => {
                 }
             } catch (error) {
                 console.error('Error fetching Stripe product/price:', error);
+                console.log('Falling back to dynamic price_data for product:', product.name);
                 // Fallback to dynamic price_data if product lookup fails
                 lineItems = [
                     {
                         price_data: {
                             currency: 'usd',
-                            product: product.stripeProductId,
+                            product_data: {
+                                name: productName || product.name,
+                                description: `Purchase ${product.name}`,
+                            },
                             unit_amount: sessionAmount,
                         },
                         quantity: 1,
