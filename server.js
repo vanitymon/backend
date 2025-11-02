@@ -33,7 +33,7 @@ const PRODUCTS = {
     tier2: {
         name: 'TIER 2 Firmware EAC/BE/ACE/VGK',
         price: 25000, // Amount in cents ($250.00)
-        stripeProductId: 'prod_TLrFmlg2jPfIsn', // Stripe Product ID
+        // stripeProductId: 'prod_TLrFmlg2jPfIsn', // Stripe Product ID (commented out - using dynamic price instead)
     },
 };
 
