@@ -24,6 +24,45 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static('.')); // Serve static files
 
+// Simple in-memory metrics store (resets on server restart)
+const onlineClients = new Map(); // clientId -> lastSeen ms
+let totalVisits = 0; // total counted visits
+
+// Clean up stale online clients periodically (every 30s)
+setInterval(() => {
+    const now = Date.now();
+    const ttlMs = 30 * 1000; // 30 seconds
+    for (const [clientId, lastSeen] of onlineClients.entries()) {
+        if (now - lastSeen > ttlMs) {
+            onlineClients.delete(clientId);
+        }
+    }
+}, 30 * 1000);
+
+// Metrics: record a unique visit (frontend should call once per session)
+app.post('/metrics/visit', (req, res) => {
+    totalVisits += 1;
+    res.json({ ok: true, total: totalVisits });
+});
+
+// Metrics: heartbeat to track currently online clients
+app.post('/metrics/heartbeat', (req, res) => {
+    try {
+        const { clientId } = req.body || {};
+        if (typeof clientId === 'string' && clientId.length > 0) {
+            onlineClients.set(clientId, Date.now());
+        }
+        res.json({ ok: true });
+    } catch (e) {
+        res.json({ ok: true });
+    }
+});
+
+// Metrics: read current stats
+app.get('/metrics/stats', (req, res) => {
+    res.json({ online: onlineClients.size, total: totalVisits });
+});
+
 // Product configuration
 const PRODUCTS = {
     tier1: {
@@ -121,8 +160,8 @@ app.post('/api/create-checkout-session', async (req, res) => {
             payment_method_types: ['card'],
             line_items: lineItems,
             mode: 'payment',
-            success_url: `${baseUrl}/success.html?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${baseUrl}/product${productId === 'tier1' ? '' : '2'}.html`,
+            success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${baseUrl}/product${productId === 'tier1' ? '' : '2'}`,
             metadata: {
                 productId: productId,
             },
